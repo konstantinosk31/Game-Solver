@@ -14,7 +14,7 @@ typedef pair<int, int> ii;
 
 #define state vector<int>
 
-const int VARMAX = 50;
+const int VARMAX = 50; //due to memory and time restrictions, the max size of variables for possible moves is restricted
 
 vector< state > moves; //contains all possible moves (ways to go from one state to another)
 vector< state > term; //contains all terminal states (if a player is to play at a terminal state he/she loses)
@@ -127,60 +127,51 @@ void strategy(state x){ //prints the optimal strategy and how the game would be
     }
 }
 
-int main(){
-    ios::sync_with_stdio(0);
-    cin.tie(0);
-    //freopen("input.txt", "r", stdin);
-    //freopen("output.txt", "w", stdout);
-    int size;
-    printf("Enter size of state: ");
-    scanf("%d", &size);
-    printf("Enter initial state: ");
-    state x0(size);
-    for(int i = 0; i < size; i++) scanf("%d", &x0[i]);
+void getMoves(int size){ //the user inputs the available moves in the game
     int varMoves;
     printf("Is the number of moves fixed (0) or variable (1)? ");
     scanf("%d", &varMoves);
-    switch(varMoves){
-        case 0:{
-            printf("Enter number of valid moves: ");
-            int fsize;
-            scanf("%d", &fsize);
-            printf("Enter valid moves:\n");
-            for(int i = 0; i < fsize; i++){
+    while(varMoves != 0 && varMoves != 1){
+        printf("Invalid answer.\n");
+        printf("Is the number of moves fixed (0) or variable (1)? ");
+        scanf("%d", &varMoves);
+    }
+    if(varMoves == 0){
+        printf("Enter number of valid moves: ");
+        int fsize;
+        scanf("%d", &fsize);
+        printf("Enter valid moves:\n");
+        for(int i = 0; i < fsize; i++){
+            state temp(size);
+            for(int j = 0; j < size; j++) scanf("%d", &temp[j]);
+            moves.pb(temp);
+        }
+    }
+    else if(varMoves == 1){
+        printf("Name your variable v. Note that max variable value is %d.\n", VARMAX);
+        printf("Enter valid moves (to stop enter \"stop\"):\n");
+        while(true){
+            vector<string> tempv(size);
+            cin>>tempv[0];
+            if(tempv[0][0] == 's') break;
+            for(int j = 1; j < size; j++) cin>>tempv[j];
+            for(int v = 1; v <= VARMAX; v++){
                 state temp(size);
-                for(int j = 0; j < size; j++) scanf("%d", &temp[j]);
+                for(int j = 0; j < size; j++){
+                    if((tempv[j][0] == 'v') || (tempv[j][0] == '-' && tempv[j][1] == 'v')){
+                        if(tempv[j][0] != '-'){
+                            temp[j] = v;
+                        }
+                        else temp[j] = -v;
+                    } else temp[j] = stoi(tempv[j]);
+                }
                 moves.pb(temp);
             }
-            break;
         }
-        case 1: {
-            printf("Name your variable v. Note that max variable value is %d.\n", VARMAX);
-            printf("Enter valid moves (to stop enter \"stop\"):\n");
-            while(true){
-                vector<string> tempv(size);
-                cin>>tempv[0];
-                if(tempv[0][0] == 's') break;
-                for(int j = 1; j < size; j++) cin>>tempv[j];
-                for(int v = 1; v <= VARMAX; v++){
-                    state temp(size);
-                    for(int j = 0; j < size; j++){
-                        if((tempv[j][0] == 'v') || (tempv[j][0] == '-' && tempv[j][1] == 'v')){
-                            if(tempv[j][0] != '-'){
-                                temp[j] = v;
-                            }
-                            else temp[j] = -v;
-                        } else temp[j] = stoi(tempv[j]);
-                    }
-                    moves.pb(temp);
-                }
-            }
-            break;
-        }
-        default:
-            printf("Invalid answer\n");
-            return 0;
     }
+}
+
+void getTerminalStates(int size){ //the user inputs the terminal states of the game
     printf("Enter number of terminal states: ");
     int nterm;
     scanf("%d", &nterm);
@@ -190,11 +181,24 @@ int main(){
         for(int j = 0; j < size; j++) scanf("%d", &temp[j]);
         term.pb(temp);
     }
+}
+
+int main(){
+    ios::sync_with_stdio(0);
+    cin.tie(0);
+    int size;
+    printf("Enter size of state: ");
+    scanf("%d", &size);
+    printf("Enter initial state: ");
+    state x0(size);
+    for(int i = 0; i < size; i++) scanf("%d", &x0[i]);
+    getMoves(size);
+    getTerminalStates(size);
     initX(x0);
     initg(x0);
     int nimsum = g(x0);
     printf("SG value of initial state is %d\n", nimsum);
-    if(nimsum != 0) printf("Player 1 wins if he plays optimally!\n");
-    else printf("Player 2 wins if he plays optimally!\n");
+    if(nimsum != 0) printf("Player 1 wins if they play optimally!\n");
+    else printf("Player 2 wins if they play optimally!\n");
     strategy(x0);
 }
