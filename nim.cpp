@@ -24,6 +24,9 @@ class game{
     protected:
         vector<int> SG; //contains the Sprague-Grundy values for all game states
 
+        vector< state > moves; //contains all possible moves (ways to go from one state to another)
+        vector< state > term; //contains all terminal states (if a player is to play at a terminal state he/she loses)
+
         vector< state > X; //contains all possible game states
         
         void generateX(state x0){ //generates all possible game states
@@ -51,9 +54,6 @@ class game{
 
     public:
         int VARMAX = 50; //due to memory and time restrictions, the max size of variables for possible moves is restricted
-
-        vector< state > moves; //contains all possible moves (ways to go from one state to another)
-        vector< state > term; //contains all terminal states (if a player is to play at a terminal state he/she loses)
 
         void printX(){ //prints all possible game states
             for(auto x : X) printx(x);
@@ -106,7 +106,7 @@ class game{
         }
 };
 
-vector<game> Games; //Games[0] is the main game. Ff the games are disjoint, Games[1...size] are the individual games
+vector<game> Games; //Games[0] is the main game. If the games are disjoint, Games[1...size] are the individual games
 
 int mex(vector<int> s){ //minimum excluded value in a vector of non-negative integers
     int n = 0;
