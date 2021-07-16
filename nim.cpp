@@ -18,15 +18,14 @@ bool disjoint = false;
 
 int mex(vector<int> s); //minimum excluded value in a vector of non-negative integers
 
-struct game{
-    private:
-        vector< state > moves; //contains all possible moves (ways to go from one state to another)
-        vector< state > term; //contains all terminal states (if a player is to play at a terminal state he/she loses)
+void printx(state x); //prints a game state
+
+class game{
+    protected:
         vector<int> SG; //contains the Sprague-Grundy values for all game states
 
         vector< state > X; //contains all possible game states
-        vector< state > F(state x0); //creates a vector with all states that we can go to in 1 move from our current state
-
+        
         void generateX(state x0){ //generates all possible game states
             //printx(x0);
             for(auto move : moves){
@@ -44,41 +43,17 @@ struct game{
             }
         }
 
-        vector< state > F(state x0){ //creates a vector with all states that we can go to in 1 move from our current state
-            vector< state > f;
-            for(auto move : moves){
-                state x = x0;
-                for(int i = 0; i < x.size(); i++) x[i] += move[i];
-                if(find(all(X), x) != X.end()) f.pb(x);
-            }
-            return f;
-        }
-
         int id(state x){ //returns the state's "id" to use as an index
             auto it = find(all(X), x);
             assert(it != X.end());
             return distance(X.begin(), it);
         }
 
-        int g(state x){ //calculates sprague-grundy value of a state
-            if(SG[id(x)] != -1) return SG[id(x)];
-            if(F(x).empty()){
-                SG[id(x)] = 0;
-                return SG[id(x)];
-            }
-            vector<int> v;
-            for(state y : F(x)) v.pb(g(y));
-            SG[id(x)] = mex(v);
-            return SG[id(x)];
-        }
-
     public:
-        const int VARMAX = 50; //due to memory and time restrictions, the max size of variables for possible moves is restricted
-        
-        void printx(state x){ //prints a game state
-            for(auto el : x) printf("%d ", el);
-            printf("\n");
-        }
+        int VARMAX = 50; //due to memory and time restrictions, the max size of variables for possible moves is restricted
+
+        vector< state > moves; //contains all possible moves (ways to go from one state to another)
+        vector< state > term; //contains all terminal states (if a player is to play at a terminal state he/she loses)
 
         void printX(){ //prints all possible game states
             for(auto x : X) printx(x);
@@ -100,6 +75,35 @@ struct game{
             return g(x0);
         }
 
+        int g(state x){ //calculates sprague-grundy value of a state
+            if(SG[id(x)] != -1) return SG[id(x)];
+            if(F(x).empty()){
+                SG[id(x)] = 0;
+                return SG[id(x)];
+            }
+            vector<int> v;
+            for(state y : F(x)) v.pb(g(y));
+            SG[id(x)] = mex(v);
+            return SG[id(x)];
+        }
+
+        vector< state > F(state x0){ //creates a vector with all states that we can go to in 1 move from our current state
+            vector< state > f;
+            for(auto move : moves){
+                state x = x0;
+                for(int i = 0; i < x.size(); i++) x[i] += move[i];
+                if(find(all(X), x) != X.end()) f.pb(x);
+            }
+            return f;
+        }
+
+        void addGameMove(state temp){
+            moves.pb(temp);
+        }
+
+        void addGameTerm(state temp){
+            term.pb(temp);
+        }
 };
 
 vector<game> Games; //Games[0] is the main game. Ff the games are disjoint, Games[1...size] are the individual games
@@ -113,11 +117,31 @@ int mex(vector<int> s){ //minimum excluded value in a vector of non-negative int
     return n;
 }
 
+void printx(state x){ //prints a game state
+            for(auto el : x) printf("%d ", el);
+            printf("\n");
+        }
+
 void getDisjoint(int size){
     printf("Enter \"1\" if there are no moves that affect more than 1 heap in a state, \"0\" otherwise: ");
     scanf("%d", &disjoint);
-    if(!disjoint) Games.resize(1);
-    else Games.resize(size+1);
+    if(!disjoint){
+        Games.resize(1);
+        Games[0].VARMAX = 50;
+    }
+    else{
+        Games.resize(size+1);
+        for(int i = 0; i < size+1; i++) Games[i].VARMAX = 1000;
+    }
+}
+
+void addMove(state temp){
+    if(!disjoint) Games[0].addGameMove(temp);
+    else{
+        for(int i = 0; i < temp.size(); i++){
+            if(temp[i] != 0) Games[i+1].addGameMove({temp[i]});
+        }   
+    }
 }
 
 void getMoves(int size){ //the user inputs the available moves in the game
@@ -132,18 +156,18 @@ void getMoves(int size){ //the user inputs the available moves in the game
         for(int i = 0; i < fsize; i++){
             state temp(size);
             for(int j = 0; j < size; j++) scanf("%d", &temp[j]);
-            moves.pb(temp);
+            addMove(temp);
         }
     }
     else if(varMoves == 1){
-        printf("Name your variable v. Note that max variable value is %d.\n", VARMAX);
+        printf("Name your variable v. Note that max variable value is %d.\n", Games[0].VARMAX);
         printf("Enter valid moves (to stop enter \"stop\"):\n");
         while(true){
             vector<string> tempv(size);
             cin>>tempv[0];
             if(tempv[0][0] == 's') break;
             for(int j = 1; j < size; j++) cin>>tempv[j];
-            for(int v = 1; v <= VARMAX; v++){
+            for(int v = 1; v <= Games[0].VARMAX; v++){
                 state temp(size);
                 for(int j = 0; j < size; j++){
                     if((tempv[j][0] == 'v') || (tempv[j][0] == '-' && tempv[j][1] == 'v')){
@@ -153,9 +177,18 @@ void getMoves(int size){ //the user inputs the available moves in the game
                         else temp[j] = -v;
                     } else temp[j] = stoi(tempv[j]);
                 }
-                moves.pb(temp);
+                addMove(temp);
             }
         }
+    }
+}
+
+void addTerm(state temp){
+    if(!disjoint) Games[0].addGameTerm(temp);
+    else{
+        for(int i = 0; i < temp.size(); i++){
+            if(temp[i] != 0) Games[i+1].addGameTerm({temp[i]});
+        }   
     }
 }
 
@@ -167,12 +200,12 @@ void getTerminalStates(int size){ //the user inputs the terminal states of the g
     for(int i = 0; i < nterm; i++){
         state temp(size);
         for(int j = 0; j < size; j++) scanf("%d", &temp[j]);
-        term.pb(temp);
+        addTerm(temp);
     }
 }
 
-void solve(int size, state x0){
-    int nimsum = 0;
+int solve(state x0){
+    int nimsum = 0, size = x0.size();
     if(!disjoint){
         Games[0].initX(x0);
         nimsum = Games[0].initg(x0);
@@ -186,26 +219,71 @@ void solve(int size, state x0){
     printf("SG value of initial state is %d\n", nimsum);
     if(nimsum != 0) printf("Player 1 wins if they play optimally!\n");
     else printf("Player 2 wins if they play optimally!\n");
+    return nimsum;
+}
+
+vector< state > sumF(state x0){
+    int size = x0.size();
+    vector< state > f;
+    for(int i = 1; i < size+1; i++){
+        for(auto next : Games[i].F({x0[i-1]})){
+            state x = x0;
+            x[i-1] = next[0];
+            f.pb(x);
+        }
+    }
+    return f;
+}
+
+int sumg(state x0){
+    int nimsum = 0, size = x0.size();
+    for(int i = 1; i <= size; i++){
+        nimsum ^= Games[i].g({x0[i-1]});
+    }
+    return nimsum;
 }
 
 void strategy(state x){ //prints the optimal strategy and how the game would be
-    printf("SG = %d | ", g(x));
-    printx(x);
-    if(F(x).empty()) return;
-    if(g(x) != 0){ //Current player wins if he plays optimally!
-        for(state y : F(x)){
-            if(g(y) == 0){
-                strategy(y);
-                return;
+    int size = x.size();
+    if(!disjoint){
+        printf("SG = %d | ", Games[0].g(x));
+        printx(x);
+        if(Games[0].F(x).empty()) return;
+        if(Games[0].g(x) != 0){ //Current player wins if he plays optimally!
+            for(state y : Games[0].F(x)){
+                if(Games[0].g(y) == 0){
+                    strategy(y);
+                    return;
+                }
             }
+            assert(false); //WE SHOULD NEVER GET HERE
         }
-        assert(false); //WE SHOULD NEVER GET HERE
+        else{ //Previous player wins if he plays optimally, so just choose something at random
+            int i = rand()%Games[0].F(x).size();
+            state y = Games[0].F(x)[i];
+            strategy(y);
+            return;
+        }
     }
-    else{ //Previous player wins if he plays optimally, so just choose something at random
-        int i = rand()%F(x).size();
-        state y = F(x)[i];
-        strategy(y);
-        return;
+    else{
+        printf("SG = %d | ", sumg(x));
+        printx(x);
+        if(sumF(x).empty()) return;
+        if(sumg(x) != 0){ //Current player wins if he plays optimally!
+            for(state y : sumF(x)){
+                if(sumg(y) == 0){
+                    strategy(y);
+                    return;
+                }
+            }
+            assert(false); //WE SHOULD NEVER GET HERE
+        }
+        else{ //Previous player wins if he plays optimally, so just choose something at random
+            int i = rand()%sumF(x).size();
+            state y = sumF(x)[i];
+            strategy(y);
+            return;
+        }
     }
 }
 
@@ -221,6 +299,6 @@ int main(){
     getDisjoint(size);
     getMoves(size);
     getTerminalStates(size);
-    solve(size, x0);
+    int nimsum = solve(x0);
     strategy(x0);
 }
