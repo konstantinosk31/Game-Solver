@@ -204,7 +204,7 @@ void getTerminalStates(int size){ //the user inputs the terminal states of the g
     }
 }
 
-int solve(state x0){
+void solve(state x0){
     int nimsum = 0, size = x0.size();
     if(!disjoint){
         Games[0].initX(x0);
@@ -219,7 +219,6 @@ int solve(state x0){
     printf("SG value of initial state is %d\n", nimsum);
     if(nimsum != 0) printf("Player 1 wins if they play optimally!\n");
     else printf("Player 2 wins if they play optimally!\n");
-    return nimsum;
 }
 
 vector< state > sumF(state x0){
@@ -299,6 +298,6 @@ int main(){
     getDisjoint(size);
     getMoves(size);
     getTerminalStates(size);
-    int nimsum = solve(x0);
+    solve(x0);
     strategy(x0);
 }
