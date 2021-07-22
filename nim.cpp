@@ -1,3 +1,9 @@
+/*
+Code written by Konstantinos Kritharidis.
+Heavily based on the notes from MIT on the Theory of Impartial Games: http://web.mit.edu/sp.268/www/nim.pdf
+More information on the readme file.
+*/
+
 #include <bits/stdc++.h>
 
 using namespace std;
@@ -22,7 +28,7 @@ int mex(vector<int> s); //minimum excluded value in a vector of non-negative int
 
 void printx(state x); //prints a game state
 
-class game{
+class game{ //represents a simple game
     protected:
         vector<int> SG; //contains the Sprague-Grundy values for all game states
 
@@ -33,164 +39,163 @@ class game{
         
         void generateX(state x0){ //generates all possible game states
             //printx(x0);
-            for(auto move : moves){
-                state x = x0;
-                bool valid = true;
+            for(auto move : moves){ //we try each possible move from the current state
+                state x = x0; //the current state
+                bool valid = true; //to check if the new state we get is valid or not
                 for(int i = 0; i < x.size(); i++){
-                    x[i] += move[i];
-                    if(x[i] < 0) valid = false;
+                    x[i] += move[i]; //we get the new state by applying the move to the current state
+                    if(x[i] < 0) valid = false; //invalid move
                 }
-                if(!valid) continue;
-                if(find(all(X), x) != X.end()) continue;
-                X.pb(x);
-                if(find(all(term), x) != term.end()) break;
-                generateX(x);
+                if(!valid) continue; //the new state is invalid, so we don't add it
+                if(find(all(X), x) != X.end()) continue; //if we've already added that state, we don't add it again
+                X.pb(x); //we store the new possible state in X
+                if(find(all(term), x) != term.end()) break; //if the move is to a terminal state, there are no moves from there
+                generateX(x); //we generate the moves from the new state we got by applying the move
             }
         }
 
         int id(state x){ //returns the state's "id" to use as an index
-            auto it = find(all(X), x);
-            assert(it != X.end());
-            return distance(X.begin(), it);
+            auto it = find(all(X), x); //iterator pointing to the state x in X
+            assert(it != X.end()); //makes sure that x belongs in X
+            return distance(X.begin(), it); //returns the position of x in X
         }
 
     public:
         int VARMAX; //due to memory and time restrictions, the max size of variables for possible moves is restricted
-        int size;
+        int size; //state size
 
-        void setVARMAX(){
-            VARMAX = (int)pow(int(2*MAXNUM/size), (double)2/size);
+        void setVARMAX(){ //sets maximum variable size for a non disjoint game of a certain size
+            VARMAX = (int)pow(int(2*MAXNUM/size), (double)2/size); //the complexity for non disjoint games is exponential wrt to the size of the state
         }
 
-        game(){}
+        game(){} //constructor for creating a new game with unknown size
 
-        game(int size) : size(size){
-            setVARMAX();
+        game(int size) : size(size){ //constructor for creating a new game with definite size
+            setVARMAX(); //sets the maximum variable size according to game size
         }
 
         void printX(){ //prints all possible game states
-            for(auto x : X) printx(x);
+            for(auto x : X) printx(x); //we print each state x in X
         }
 
         virtual void initX(state x0){ //initializes the game states vector
-            X.pb(x0);
-            generateX(x0);
-            sort(rall(X));
-        }
-
-        void printF(state x0){ //prints all states that we can go to in 1 move from our current state
-            vector< state > f = F(x0);
-            for(auto x : f) printx(x);
-        }
-        
-        virtual int initg(state x0){ //initializes Sprague-Grundy array
-            SG.resize(X.size(), -1);
-            return g(x0);
-        }
-
-        virtual int g(state x){ //calculates sprague-grundy value of a state
-            if(SG[id(x)] != -1) return SG[id(x)];
-            if(F(x).empty()){
-                SG[id(x)] = 0;
-                return SG[id(x)];
-            }
-            vector<int> v;
-            for(state y : F(x)) v.pb(g(y));
-            SG[id(x)] = mex(v);
-            return SG[id(x)];
+            X.pb(x0); //we add the initial state x0
+            generateX(x0); //generate all possible game states reachable from x0 and store them in X
         }
 
         virtual vector< state > F(state x0){ //creates a vector with all states that we can go to in 1 move from our current state
-            vector< state > f;
-            for(auto move : moves){
+            vector< state > f; //in f we store the followers of x0
+            for(auto move : moves){ //we try all moves from state x0
                 state x = x0;
-                for(int i = 0; i < x.size(); i++) x[i] += move[i];
-                if(find(all(X), x) != X.end()) f.pb(x);
+                for(int i = 0; i < x.size(); i++) x[i] += move[i]; //we get each new state following x
+                if(find(all(X), x) != X.end()) f.pb(x); //if x is a valid state (exists in X), we add it to the followers of x0
             }
-            return f;
+            return f; //we return the vector f
         }
 
-        virtual void addMove(state temp){
+        void printF(state x0){ //prints all states that we can go to in 1 move from our current state
+            vector< state > f = F(x0); //get a vector of all states immediately following x0
+            for(auto x : f) printx(x); //we print each state in the vector
+        }
+        
+        virtual int initg(state x0){ //initializes Sprague-Grundy array
+            SG.resize(X.size(), -1); //make the SG array have as many places as X (one value for each state)
+            return g(x0); //we return the SG value of the initial state, computing as a prerequisite the SG values of all following states
+        }
+
+        virtual int g(state x){ //calculates sprague-grundy value of a state
+            if(SG[id(x)] != -1) return SG[id(x)]; //if we've already calculated the SG value of the state, we just return it and don't calculate it again
+            if(F(x).empty()){ //if the state is terminal
+                SG[id(x)] = 0; //SG value of terminal state is 0
+                return SG[id(x)]; //we return the SG value of the state
+            }
+            vector<int> v;
+            for(state y : F(x)) v.pb(g(y)); //v contains all SG values of the followers of x
+            SG[id(x)] = mex(v); //SG value of x is the minimum excluded value of v
+            return SG[id(x)]; //we return the SG value of the state
+        }
+
+        virtual void addMove(state temp){ //adds a move to the list of available moves
             moves.pb(temp);
         }
 
-        virtual void addTerm(state temp){
+        virtual void addTerm(state temp){ //adds a terminal state to the list of terminal states of the game
             term.pb(temp);
         }
 };
 
-class sumGame : public game{
+class sumGame : public game{ //represents the sum of disjoint sub-games
     public:
-        vector<game> games;
-        int size;
+        vector<game> games; //the list of sub-games of which the sum-game consists
+        int size; //the amount of sub-games in the sum-game
 
-        void setVARMAX(){
+        void setVARMAX(){ //sets maximum variable size for a sum of disjoint games of a certain size
             int val = MAXNUM;
-            VARMAX = val;
-            for(auto game : games) game.VARMAX = val;
+            VARMAX = val; //the complexity for sums of disjoint games is linear wrt to the size of the sum-state
+            for(auto game : games) game.VARMAX = val; //the sub-games have the same VARMAX
         }
 
-        sumGame(int size) : size(size){
+        sumGame(int size) : size(size){ //constructor for creating a new sum-game with definite size
             games.resize(size);
-            setVARMAX();
+            setVARMAX(); //sets the maximum variable size according to game size
         }
 
-        sumGame(vector<game> games) : games(games){
+        sumGame(vector<game> games) : games(games){ //constructor for creating a new sum-game with a vector of sub-games
             size = games.size();
-            setVARMAX();
+            setVARMAX(); //sets the maximum variable size according to game size
         }
 
-        void initX(state x0){
+        void initX(state x0){ //we don't actually store every possible state in a sum-game to minimise space and time complexity
             for(int i = 0; i < size; i++){
-                this->games[i].initX({x0[i]});
+                this->games[i].initX({x0[i]}); //instead we store every possible state in each sub-game and later combine them when necessary
             }
         }
 
-        vector< state > F(state x0){
+        vector< state > F(state x0){ //creates a vector with all states that we can go to in 1 move from our current state in the sum-game
             int size = x0.size();
-            vector< state > f;
-            for(int i = 0; i < size; i++){
-                for(auto next : games[i].F({x0[i]})){
+            vector< state > f; //in f we store the followers of x0
+            for(int i = 0; i < size; i++){ //since the sub-games are disjoint, we only change one heap at a time
+                for(auto next : games[i].F({x0[i]})){ //we get the followers from each sub-game
                     state x = x0;
-                    x[i] = next[0];
-                    f.pb(x);
+                    x[i] = next[0]; //next[] only has one element since each sub-game has a size of 1 and we only change the heap that corresponds to that sub-game
+                    f.pb(x); //we add the state to the followers of x0
                 }
             }
-            return f;
+            return f; //we return the vector f
         }
 
-        int g(state x0){
+        int g(state x0){ //calculates sprague-grundy value of a state
             int nimsum = 0, size = x0.size();
             for(int i = 0; i < size; i++){
-                nimsum ^= games[i].g({x0[i]});
+                nimsum ^= games[i].g({x0[i]}); //SG value of a state in a sum-game is the xor-sum of the SG values of the sub-games
             }
-            return nimsum;
+            return nimsum; //we return the SG value of the state
         }
 
-        int initg(state x0){
+        int initg(state x0){ //initializes Sprague-Grundy array of each sub-game in the sum-game
             int nimsum = 0;
             for(int i = 0; i < size; i++){
-                nimsum ^= this->games[i].initg({x0[i]});
+                nimsum ^= this->games[i].initg({x0[i]}); //SG value of a state in a sum-game is the xor-sum of the SG values of the sub-games
             }
-            return nimsum;
+            return nimsum; //returns the SG value of the initial state in the sum-game
         }
 
-        void addMove(state temp){
+        void addMove(state temp){ //adds a move to the list of available moves in the sum-game
             for(int i = 0; i < temp.size(); i++){
-                if(temp[i] != 0) this->games[i].addMove({temp[i]});
+                if(temp[i] != 0) this->games[i].addMove({temp[i]}); //the move only affects one heap so we only add it to that one
             }
         }
 
-        void addTerm(state temp){
+        void addTerm(state temp){ //adds a terminal state to the list of terminal states of the sum-game
             for(int i = 0; i < temp.size(); i++){
-                this->games[i].addTerm({temp[i]});
+                this->games[i].addTerm({temp[i]}); //the terminal state ends each sub-game
             }
         }
 };
 
 game* Game;
 
-int mex(vector<int> s){ //minimum excluded value in a vector of non-negative integers
+int mex(vector<int> s){ //returns the minimum excluded value in a vector of non-negative integers
     int n = 0;
     sort(all(s));
     for(auto el : s){
@@ -204,11 +209,11 @@ void printx(state x){ //prints a game state
     printf("\n");
 }
 
-void getDisjoint(int size){
+void getDisjoint(int size){ //check if the game can be expressed as the sum of distinct sub-games
     printf("Enter \"1\" if there are no moves that affect more than 1 heap in a state, \"0\" otherwise: ");
     scanf("%d", &disjoint);
-    if(!disjoint) Game = new game(size);
-    else Game = new sumGame(size);
+    if(!disjoint) Game = new game(size); //if not, then the entire game is a normal game of size = size
+    else Game = new sumGame(size); //otherwise, the game is the sum-game of sub games of size = 1 and amount = size
 }
 
 void getMoves(int size){ //the user inputs the available moves in the game
@@ -262,7 +267,7 @@ void getTerminalStates(int size){ //the user inputs the terminal states of the g
     }
 }
 
-void solve(state x0){
+void solve(state x0){ //finds the winning player in the game
     int nimsum = 0, size = x0.size();
     Game->initX(x0);
     nimsum = Game->initg(x0);
@@ -276,7 +281,7 @@ void strategy(state x){ //prints the optimal strategy and how the game would be
     printf("SG = %d | ", Game->g(x));
     printx(x);
     if(Game->F(x).empty()) return;
-    if(Game->g(x) != 0){ //Current player wins if he plays optimally!
+    if(Game->g(x) != 0){ //Current player wins if they play optimally!
         for(state y : Game->F(x)){
             if(Game->g(y) == 0){
                 strategy(y);
@@ -285,7 +290,7 @@ void strategy(state x){ //prints the optimal strategy and how the game would be
         }
         assert(false); //WE SHOULD NEVER GET HERE
     }
-    else{ //Previous player wins if he plays optimally, so just choose something at random
+    else{ //Previous player wins if they play optimally, so just choose a move at random
         int i = rand()%Game->F(x).size();
         state y = Game->F(x)[i];
         strategy(y);
@@ -302,7 +307,7 @@ int main(){
     printf("Enter initial state: ");
     state x0(size);
     for(int i = 0; i < size; i++) scanf("%d", &x0[i]);
-    getDisjoint(size);
+    getDisjoint(size); //optimization based on whether the game can be expressed as the sum of distinct sub-games
     getMoves(size);
     getTerminalStates(size);
     solve(x0);
