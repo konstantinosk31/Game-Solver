@@ -1,0 +1,112 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsfonts}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{float}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+
+\lstset{style=mystyle}
+
+\title{Finite Impartial Combinatorial Game Solver}
+\author{Konstantinos Kritharidis}
+\date{06/07/2021}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+This document will analyse a code I've written to solve (theoretically) every finite impartial combinatorial game. More specifically:
+\begin{itemize}
+  \item combinatorial game\cite{combinatorial_wiki}: A sequential game with perfect information
+  \item impartial\cite{mit}: A game in which the set of allowable moves depends only on the position of the game and not on which of the two players is moving
+  \item finite\cite{mit}: There is a finite set of positions available in the game and the game eventually ends
+  \item solve: Find if player 1 or player 2 wins and outputs the optimal strategy to achieve the win.
+\end{itemize}
+The code is heavily based on the notes\cite{mit} from MIT on the Theory of Impartial Games which explains how to solve every such game using the Sprague-Grundy Theorem\cite{sg}.
+
+\section{Code Analysis}
+
+\subsection{General Idea}
+
+A game consists of a graph $G = (X, F)$ where\cite{mit}:
+\begin{itemize}
+\item $X$ is the set of all possible game positions
+\item $F$ is a function that gives for each $x \in X$ a subset of possible $x$’s to move to, called followers. If $F(x)$ is empty, the position $x$ is terminal.
+\item The start position is $x_0 \in X$. So player 1 moves first from $x_0$.
+\item Players alternate moves. At position $x$, the player chooses from $y \in F(x)$.
+\item The player confronted with the empty set $F(x)$ loses.
+\end{itemize}
+We will only look at graphs that are progressively bounded\cite{mit}, meaning that from every start position $x_0$, every path has finite length. In other words, the graph is finite and has no cycles.
+
+The user inputs the initial game state, the possible moves and the terminal states. We construct the graph $G(X, F)$ and calculate the Sprague-Grundy (SG) value of each possible state. If the SG value of the initial state is non-zero, Player 1 wins if they play optimally. Otherwise, Player 2 wins if they play optimally. The code outputs the winning player and proceeds to show a possible winning strategy by starting at the initial state and climbing down the graph.
+
+Assuming player 1 wins if they play optimally, we travel to a state which has an SG value of zero. Then, regardless of which move Player 2 makes, they are destined to lose, if Player 1 plays optimally, so they make a random move. The process repeats until a terminal state is reached. There, Player 2 will have no possible move and will, thus, lose the game. 
+
+\section{Notes\cite{mit}}
+
+To analyze the game we will need to use the function $mex$, or minimum excluded value, defined as
+$$mex(S) = min{\{}n \in \mathbb{N} : n \notin S{\}}$$
+The Sprague-Grundy function of a graph G = (X, F) is a function $g$ defined on $X$ that takes only non-negative integer values and is computed as follows:
+$$g(x) = mex{\{}g(y) : y \in F(x){\}}$$
+In words, the Sprague-Grundy (SG) is the smallest non-negative value not found among the SG values of the followers of $x$.
+
+Since this function is defined recursively, we’ll need some base cases. We set all terminal nodes $x$ to have $g(x) = 0$. Then any nodes that have only terminal nodes as followers have $g(x) = 1$. In this way we can work our way through the graph until all nodes are assigned an SG value.
+
+We can add any $n$ games $G_i$ together as follows:\\
+To sum the games $G_1 = (X_1, F_1), G_2 = (X_2, F_2), \dots, G_n = (X_n, F_n)$,\\
+$G(X, F) = G_1 + G_2 + \dots + G_n$ where:
+\begin{itemize}
+\item $X = X_1 \times X_2 \times X_3 \times \dots \times X_n$, or the set of all $n$-tuples such that $x_i \in X_i \forall i$
+\item The maximum number of moves is the sum of the maximum number
+of moves of each component game.
+\end{itemize}
+
+According to the Sprague-Grundy Theorem, the SG function for a sum of games on a graph is just the Nim sum of the SG functions of its components.\\
+If $g_i$ is the Sprague-Grundy function of $G_i, i = 1, \dots, n$, then $G = G_1 + \dots + G_n$ has Sprague-Grundy function $g(x_1, \dots, x_n) = g_1(x_1) \oplus \dots \oplus g_n(x_n)$.
+
+The winning strategy on a game that can be represented in such a graph would be to move to a vertex with $g(x) = 0$.
+
+\begin{thebibliography}{9}
+
+\bibitem{combinatorial_wiki} 
+Combinatorial game theory, Wikipedia
+\\\texttt{https://en.wikipedia.org/wiki/Combinatorial{\_}game{\_}theory}
+
+\bibitem{mit} 
+Theory of Impartial Games, MIT
+\\\texttt{http://web.mit.edu/sp.268/www/nim.pdf}
+
+\bibitem{sg} 
+Sprague–Grundy theorem, Wikipedia
+\\\texttt{https://en.wikipedia.org/wiki/Sprague-Grundy{\_}theorem}
+
+\end{thebibliography}
+
+\end{document}
