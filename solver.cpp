@@ -22,7 +22,11 @@
 More information on the readme file.
 */
 
-#include <bits/stdc++.h>
+#include <algorithm>
+#include <cassert>
+#include <iostream>
+#include <string>
+#include <vector>
 
 using namespace std;
 
