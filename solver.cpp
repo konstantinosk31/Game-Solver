@@ -219,8 +219,14 @@ game* Game;
 int mex(vector<int> s){ //returns the minimum excluded value in a vector of non-negative integers
     int n = 0;
     sort(all(s));
-    for(int el : s){
-        if(n == el) n++;
+    for (int i = 0; i < s.size(); i++) {
+        if (i > 0 && s[i] == s[i - 1]) { //skip duplicates, since they are already checked!
+            continue;
+        }
+        if (n != s[i]) { //if this is not the next consecutive value, it means we have found the first excluded integer.
+            return n;
+        }
+        n++;
     }
     return n;
 }
