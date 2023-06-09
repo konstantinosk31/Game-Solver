@@ -40,7 +40,7 @@ using namespace std;
 typedef long long ll;
 typedef pair<int, int> ii;
 
-#define state vector<int>
+typedef vector<int> state;
 
 const int MAXNUM = 500;
 
@@ -60,8 +60,7 @@ class game{ //represents a simple game
         vector< state > X; //contains all possible game states
         
         void generateX(state x0){ //generates all possible game states
-            //printx(x0);
-            for(auto move : moves){ //we try each possible move from the current state
+            for(const state& move : moves){ //we try each possible move from the current state
                 state x = x0; //the current state
                 bool valid = true; //to check if the new state we get is valid or not
                 for(int i = 0; i < x.size(); i++){
@@ -97,7 +96,7 @@ class game{ //represents a simple game
         }
 
         void printX(){ //prints all possible game states
-            for(auto x : X) printx(x); //we print each state x in X
+            for(const state& x : X) printx(x); //we print each state x in X
         }
 
         virtual void initX(state x0){ //initializes the game states vector
@@ -107,7 +106,7 @@ class game{ //represents a simple game
 
         virtual vector< state > F(state x0){ //creates a vector with all states that we can go to in 1 move from our current state
             vector< state > f; //in f we store the followers of x0
-            for(auto move : moves){ //we try all moves from state x0
+            for(const state& move : moves){ //we try all moves from state x0
                 state x = x0;
                 for(int i = 0; i < x.size(); i++) x[i] += move[i]; //we get each new state following x
                 if(find(all(X), x) != X.end()) f.pb(x); //if x is a valid state (exists in X), we add it to the followers of x0
@@ -117,7 +116,7 @@ class game{ //represents a simple game
 
         void printF(state x0){ //prints all states that we can go to in 1 move from our current state
             vector< state > f = F(x0); //get a vector of all states immediately following x0
-            for(auto x : f) printx(x); //we print each state in the vector
+            for(const state& x : f) printx(x); //we print each state in the vector
         }
         
         virtual int initg(state x0){ //initializes Sprague-Grundy array
@@ -132,7 +131,7 @@ class game{ //represents a simple game
                 return SG[id(x)]; //we return the SG value of the state
             }
             vector<int> v;
-            for(state y : F(x)) v.pb(g(y)); //v contains all SG values of the followers of x
+            for(const state& y : F(x)) v.pb(g(y)); //v contains all SG values of the followers of x
             SG[id(x)] = mex(v); //SG value of x is the minimum excluded value of v
             return SG[id(x)]; //we return the SG value of the state
         }
@@ -154,7 +153,7 @@ class sumGame : public game{ //represents the sum of disjoint sub-games
         void setVARMAX(){ //sets maximum variable size for a sum of disjoint games of a certain size
             int val = MAXNUM;
             VARMAX = val; //the complexity for sums of disjoint games is linear wrt to the size of the sum-state
-            for(auto game : games) game.VARMAX = val; //the sub-games have the same VARMAX
+            for(game& subgame : games) subgame.VARMAX = val; //the sub-games have the same VARMAX
         }
 
         sumGame(int size) : size(size){ //constructor for creating a new sum-game with definite size
@@ -177,7 +176,7 @@ class sumGame : public game{ //represents the sum of disjoint sub-games
             int size = x0.size();
             vector< state > f; //in f we store the followers of x0
             for(int i = 0; i < size; i++){ //since the sub-games are disjoint, we only change one heap at a time
-                for(auto next : games[i].F({x0[i]})){ //we get the followers from each sub-game
+                for(const state& next : games[i].F({x0[i]})){ //we get the followers from each sub-game
                     state x = x0;
                     x[i] = next[0]; //next[] only has one element since each sub-game has a size of 1 and we only change the heap that corresponds to that sub-game
                     f.pb(x); //we add the state to the followers of x0
@@ -220,14 +219,14 @@ game* Game;
 int mex(vector<int> s){ //returns the minimum excluded value in a vector of non-negative integers
     int n = 0;
     sort(all(s));
-    for(auto el : s){
+    for(int el : s){
         if(n == el) n++;
     }
     return n;
 }
 
 void printx(state x){ //prints a game state
-    for(auto el : x) printf("%d ", el);
+    for(int el : x) printf("%d ", el);
     printf("\n");
 }
 
